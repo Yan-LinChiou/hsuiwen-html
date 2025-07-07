@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灾害通报表生成器</title>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #1a3a6c;
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        .card-header {
+            background: #2c5282;
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            padding: 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: #3182ce;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2b6cb0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(49, 130, 206, 0.3);
+        }
+        .btn-success {
+            background: #38a169;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #2f855a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(56, 161, 105, 0.3);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #3182ce;
+            color: #3182ce;
+        }
+        .btn-outline:hover {
+            background: #ebf8ff;
+        }
+        .table-container {
+            overflow-x: auto;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: center;
+            border: 1px solid #cbd5e0;
+        }
+        thead th {
+            background: #ebf8ff;
+            font-weight: 600;
+            color: #2b6cb0;
+        }
+        tbody tr:nth-child(even) {
+            background: #f7fafc;
+        }
+        tbody tr:hover {
+            background: #ebf8ff;
+        }
+        .title-row {
+            background: #1a3a6c;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .instructions {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-top: 30px;
+        }
+        .instructions h2 {
+            color: #2c5282;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .step {
+            display: flex;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+        .step-number {
+            min-width: 36px;
+            height: 36px;
+            background: #3182ce;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+        input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        input:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+        }
+        .empty-col {
+            background: #f7fafc;
+        }
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>灾害通报表生成系统</h1>
+            <div class="subtitle">114年07月06日 - 各分局灾害状况记录</div>
+        </header>
+        
+        <div class="card">
+            <div class="card-header">
+                <div>灾害通报表</div>
+                <div>填表日期: 114年07月06日</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-primary" onclick="addRow()">
+                    <i class="fas fa-plus"></i> 添加新记录
+                </button>
+                <button class="btn btn-success" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i> 导出Excel文件
+                </button>
+                <button class="btn btn-outline" onclick="clearAll()">
+                    <i class="fas fa-trash"></i> 清空表格
+                </button>
+            </div>
+            
+            <div class="table-container">
+                <table id="reportTable">
+                    <thead>
+                        <tr>
+                            <th width="5%">項次</th>
+                            <th width="12%">總、分局別</th>
+                            <th width="15%">地點</th>
+                            <th width="15%">通報(發現)時間</th>
+                            <th width="15%">災害狀況</th>
+                            <th width="5%" class="empty-col"></th>
+                            <th width="15%">原因</th>
+                            <th width="15%">處理情形</th>
+                            <th width="15%">(預計)復原時間</th>
+                            <th width="15%">備註</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>總局</td>
+                            <td><input type="text" placeholder="輸入地點"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="災害狀況描述"></td>
+                            <td class="empty-col"></td>
+                            <td><input type="text" placeholder="災害原因"></td>
+                            <td><input type="text" placeholder="處理情形"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="備註信息"></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>文心分局</td>
+                            <td><input type="text" placeholder="輸入地點"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="災害狀況描述"></td>
+                            <td class="empty-col"></td>
+                            <td><input type="text" placeholder="災害原因"></td>
+                            <td><input type="text" placeholder="處理情形"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="備註信息"></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>大智分局</td>
+                            <td><input type="text" placeholder="輸入地點"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="災害狀況描述"></td>
+                            <td class="empty-col"></td>
+                            <td><input type="text" placeholder="災害原因"></td>
+                            <td><input type="text" placeholder="處理情形"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="備註信息"></td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>大屯分局</td>
+                            <td><input type="text" placeholder="輸入地點"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="災害狀況描述"></td>
+                            <td class="empty-col"></td>
+                            <td><input type="text" placeholder="災害原因"></td>
+                            <td><input type="text" placeholder="處理情形"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="備註信息"></td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>沙鹿分局</td>
+                            <td><input type="text" placeholder="輸入地點"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="災害狀況描述"></td>
+                            <td class="empty-col"></td>
+                            <td><input type="text" placeholder="災害原因"></td>
+                            <td><input type="text" placeholder="處理情形"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="備註信息"></td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td>民權分局</td>
+                            <td><input type="text" placeholder="輸入地點"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="災害狀況描述"></td>
+                            <td class="empty-col"></td>
+                            <td><input type="text" placeholder="災害原因"></td>
+                            <td><input type="text" placeholder="處理情形"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="備註信息"></td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td>東山分局</td>
+                            <td><input type="text" placeholder="輸入地點"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="災害狀況描述"></td>
+                            <td class="empty-col"></td>
+                            <td><input type="text" placeholder="災害原因"></td>
+                            <td><input type="text" placeholder="處理情形"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="備註信息"></td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td>東勢分局</td>
+                            <td><input type="text" placeholder="輸入地點"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="災害狀況描述"></td>
+                            <td class="empty-col"></td>
+                            <td><input type="text" placeholder="災害原因"></td>
+                            <td><input type="text" placeholder="處理情形"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="備註信息"></td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td>豐原分局</td>
+                            <td><input type="text" placeholder="輸入地點"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="災害狀況描述"></td>
+                            <td class="empty-col"></td>
+                            <td><input type="text" placeholder="災害原因"></td>
+                            <td><input type="text" placeholder="處理情形"></td>
+                            <td><input type="text" placeholder="YYYY-MM-DD HH:MM"></td>
+                            <td><input type="text" placeholder="備註信息"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h2>使用说明</h2>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>
+                    <h3>填写表格数据</h3>
+                    <p>在各分局对应的输入框中填写灾害信息，包括地点、通報时间、灾害状况、原因、处理情形、预计复原时间和备注。</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>
+                    <h3>导出Excel文件</h3>
+                    <p>点击"导出Excel文件"按钮，系统将自动生成并下载格式完整的灾害通报表Excel文件。</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>
+                    <h3>添加新记录</h3>
+                    <p>如需添加新的分局记录，点击"添加新记录"按钮，系统将在表格末尾添加新行。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>灾害通报管理系统 © 2024 内政部灾害防救中心 | 版本 2.1.4</p>
+        </div>
+    </div>
+
+    <script>
+        // 添加新行功能
+        function addRow() {
+            const table = document.getElementById('reportTable').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+            const rowCount = table.rows.length;
+            
+            // 创建单元格
+            const cells = [];
+            for (let i = 0; i < 10; i++) {
+                cells.push(newRow.insertCell(i));
+            }
+            
+            // 设置单元格内容
+            cells[0].innerHTML = rowCount;
+            cells[1].innerHTML = '<input type="text" placeholder="輸入分局名稱">';
+            cells[2].innerHTML = '<input type="text" placeholder="輸入地點">';
+            cells[3].innerHTML = '<input type="text" placeholder="YYYY-MM-DD HH:MM">';
+            cells[4].innerHTML = '<input type="text" placeholder="災害狀況描述">';
+            cells[5].className = 'empty-col';
+            cells[6].innerHTML = '<input type="text" placeholder="災害原因">';
+            cells[7].innerHTML = '<input type="text" placeholder="處理情形">';
+            cells[8].innerHTML = '<input type="text" placeholder="YYYY-MM-DD HH:MM">';
+            cells[9].innerHTML = '<input type="text" placeholder="備註信息">';
+        }
+        
+        // 清空表格功能
+        function clearAll() {
+            if (confirm('確定要清空表格中的所有數據嗎？此操作不可恢復。')) {
+                const inputs = document.querySelectorAll('#reportTable tbody input');
+                inputs.forEach(input => {
+                    input.value = '';
+                });
+            }
+        }
+        
+        // 导出Excel功能
+        function exportToExcel() {
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            wb.SheetNames.push("災害通報表");
+            
+            // 准备数据
+            const data = [];
+            
+            // 添加标题行
+            data.push(["填表日期: 114年07月06日", "", "", "", "", "", "", "", "", ""]);
+            
+            // 添加表头
+            data.push(["項次", "總、分局別", "地點", "通報(發現)時間", "災害狀況", "", "原因", "處理情形", "(預計)復原時間", "備註"]);
+            
+            // 添加表格数据
+            const rows = document.querySelectorAll('#reportTable tbody tr');
+            rows.forEach(row => {
+                const rowData = [];
+                const cells = row.querySelectorAll('td');
+                
+                cells.forEach((cell, index) => {
+                    if (index === 0) {
+                        // 项次
+                        rowData.push(cell.textContent);
+                    } else if (index === 5) {
+                        // 空列
+                        rowData.push("");
+                    } else {
+                        // 输入框内容
+                        const input = cell.querySelector('input');
+                        rowData.push(input ? input.value : cell.textContent);
+                    }
+                });
+                
+                data.push(rowData);
+            });
+            
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // 合并标题行单元格
+            ws['!merges'] = [
+                {s: {r: 0, c: 0}, e: {r: 0, c: 9}}
+            ];
+            
+            // 添加到工作簿
+            wb.Sheets["災害通報表"] = ws;
+            
+            // 导出Excel
+            XLSX.writeFile(wb, "災害通報表_1140706.xlsx");
+        }
+    </script>
+</body>
+</html>
